@@ -11,6 +11,7 @@ More info in the project overview: [docs/project-plan.md](docs/project-plan.md)
 This is a monorepo with two main areas:
 
 - `nestjs-project/` — Backend API (NestJS 11, TypeScript, Express). Contains modules for users, channels, videos, comments, etc.
+  - `nestjs-project/worker/` — Video processing worker (separate Node process, not a NestJS app). Runs FFmpeg via BullMQ jobs.
 - `docs/` — Project documentation, architecture diagrams, and planning.
 - `next-frontend/` (Next.js) — not yet initialized
 
@@ -22,9 +23,25 @@ See `docs/diagrams/software-arch.mermaid` for the full diagram. Key containers:
 - **API** (Nest.js) → business rules, auth, reads/writes DB, uploads to storage, publishes jobs to queue, sends emails
 - **Video Worker** (FFmpeg) → consumes jobs from queue, processes videos, updates DB and storage
 - **Database** (PostgreSQL) → users, channels, videos, comments, likes
-- **Object Storage** (S3/MinIO) → video files and thumbnails
-- **Message Queue** (TBD) → video processing job queue
+- **Object Storage** (S3/MinIO) → video files and thumbnails. Local dev uses MinIO (Compose service `minio`, ports 9000/9001).
+- **Message Queue** (BullMQ + Redis) → video processing job queue. Local dev uses Redis (Compose service `redis`, port 6379). Queue name: `video-processing`.
 - **Email Service** (SMTP) → account confirmation and password recovery
+
+## Phase Status
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| Phase 01 | Base setup (NestJS, Docker, DB, Swagger) | ✅ Complete |
+| Phase 02 | Auth, users, channels (JWT, refresh tokens, email confirmation) | ✅ Complete |
+| Phase 03 | Video upload, processing, streaming (MinIO, BullMQ, FFmpeg worker) | ✅ Complete |
+
+**Phase 03 — what's implemented:**
+- `StorageModule` — presigned PUT URLs (client uploads directly to MinIO, API never proxies bytes) and presigned GET redirect for streaming/download
+- `QueueModule` — BullMQ queue backed by Redis; queue name `video-processing`
+- `VideosModule` — `POST /videos` (draft + upload URL), `GET /videos/:slug`, `POST /videos/:id/trigger-processing`, `GET /videos/:slug/stream` (302), `GET /videos/:slug/download` (302)
+- `worker/` — standalone Node process: ffprobe → ffmpeg thumbnail → MinIO upload → DB update; on failure sets `status=error`
+- Video status lifecycle: `draft → processing → ready | error`
+- Migration `1751058000000-CreateVideos.ts` — creates `videos` table with FK to `channels` (CASCADE DELETE)
 
 ## Docker Networking
 
