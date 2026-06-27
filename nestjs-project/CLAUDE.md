@@ -149,6 +149,73 @@ NestJS with standard module structure. Source lives in `src/`, compiled output i
 - Each domain feature gets its own module (e.g., `UsersModule`, `VideosModule`) registered in `AppModule`
 - Controllers handle HTTP routing; Services hold business logic; both are scoped to their module
 
+## Videos Module (Phase 03)
+
+### Infrastructure Services
+
+| Service        | Compose name    | Port  | Purpose                                |
+|----------------|-----------------|-------|----------------------------------------|
+| MinIO          | `minio`         | 9000  | Object storage for videos/thumbnails   |
+| MinIO Console  | `minio`         | 9001  | Web UI for bucket management           |
+| Redis          | `redis`         | 6379  | BullMQ queue backend                   |
+| Video Worker   | `video-worker`  | —     | FFmpeg processing container            |
+
+### Key Design Decisions
+
+- **Upload strategy:** presigned PUT URL — client uploads directly to MinIO; API never proxies video bytes.
+- **Streaming:** presigned GET URL + HTTP 302 redirect; MinIO handles range requests natively.
+- **Slug:** 11-char URL-safe ID generated with `crypto.randomBytes` (not nanoid — ESM-only, Jest-incompatible).
+- **Worker:** separate Docker container (`worker/`) sharing the same `package.json`; communicates via BullMQ.
+- **Status lifecycle:** `draft → processing → ready | error`
+
+### Config Namespaces
+
+- `storage.*` — MinIO endpoint, credentials, bucket, TTL values (`src/config/storage.config.ts`)
+- `redis.*` — host and port for BullMQ (`src/config/redis.config.ts`)
+
+### API Endpoints
+
+| Method | Path                              | Auth     | Description                                    |
+|--------|-----------------------------------|----------|------------------------------------------------|
+| POST   | `/videos`                         | Required | Create draft + return presigned upload URL     |
+| GET    | `/videos/:slug`                   | Public   | Get video metadata                             |
+| POST   | `/videos/:id/trigger-processing`  | Required | Validate upload and enqueue processing job     |
+| GET    | `/videos/:slug/stream`            | Public   | 302 redirect to presigned streaming URL        |
+| GET    | `/videos/:slug/download`          | Public   | 302 redirect to presigned download URL         |
+
+### Domain Exceptions
+
+| Code                        | HTTP | Thrown when                                        |
+|-----------------------------|------|----------------------------------------------------|
+| `VIDEO_NOT_FOUND`           | 404  | Slug or ID not found                               |
+| `VIDEO_NOT_IN_DRAFT`        | 409  | Trigger-processing called on non-draft video       |
+| `VIDEO_NOT_READY`           | 422  | Stream/download called on non-ready video          |
+| `VIDEO_FORBIDDEN`           | 403  | User's channel does not own the video              |
+| `STORAGE_OBJECT_NOT_FOUND`  | 422  | Video file missing from MinIO before processing    |
+
+### Worker
+
+The worker (`worker/src/`) is a standalone Node process, not a NestJS app:
+
+1. Downloads video from MinIO to a tmp file
+2. Runs `ffprobe` for duration and codec metadata
+3. Generates a thumbnail with `ffmpeg screenshots`
+4. Uploads thumbnail to MinIO at `thumbnails/<slug>.jpg`
+5. Updates the `videos` row (status=ready, duration_seconds, metadata, thumbnail_key) via raw SQL
+6. On error: sets status=error in DB
+
+Tmp files are cleaned up in `try/finally` regardless of outcome.
+
+### MinIO Bucket Setup
+
+The `videos` bucket must exist before any upload. For local development, create it via the MinIO Console at `http://localhost:9001` (credentials from `.env`) or via the `mc` CLI:
+
+```bash
+docker compose exec minio mc alias set local http://localhost:9000 $STORAGE_ACCESS_KEY $STORAGE_SECRET_KEY
+docker compose exec minio mc mb local/videos
+docker compose exec minio mc anonymous set download local/videos
+```
+
 ## Code Conventions
 
 - **TypeScript:** `nodenext` module resolution, `ES2023` target, `strictNullChecks` on, `noImplicitAny` off
