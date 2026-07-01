@@ -19,8 +19,12 @@ describe('Video entity (integration)', () => {
   let videoRepository: Repository<Video>;
 
   beforeAll(async () => {
-    dataSource = createTestDataSource(ALL_ENTITIES);
+    dataSource = createTestDataSource(ALL_ENTITIES, { synchronize: false });
     await dataSource.initialize();
+    // Remove stale rows before applying schema so the videos→channels FK can be
+    // added without violating existing orphaned data from previous test runs.
+    await dataSource.query('DELETE FROM "videos"').catch(() => undefined);
+    await dataSource.synchronize();
     userRepository = dataSource.getRepository(User);
     channelRepository = dataSource.getRepository(Channel);
     videoRepository = dataSource.getRepository(Video);

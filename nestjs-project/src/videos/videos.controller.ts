@@ -71,11 +71,13 @@ export class VideosController {
     @Body() dto: CreateVideoDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<CreateVideoResponseDto> {
-    const { video, uploadUrl, storageKey } = await this.videosService.createDraft(
-      user.sub,
-      dto.title,
+    const { video, uploadUrl, storageKey } =
+      await this.videosService.createDraft(user.sub, dto.title);
+    return CreateVideoResponseDto.fromWithUploadUrl(
+      video,
+      uploadUrl,
+      storageKey,
     );
-    return CreateVideoResponseDto.fromWithUploadUrl(video, uploadUrl, storageKey);
   }
 
   @Post(':id/trigger-processing')
@@ -144,7 +146,10 @@ export class VideosController {
         id: { type: 'string', format: 'uuid' },
         slug: { type: 'string' },
         title: { type: 'string' },
-        status: { type: 'string', enum: ['draft', 'processing', 'ready', 'error'] },
+        status: {
+          type: 'string',
+          enum: ['draft', 'processing', 'ready', 'error'],
+        },
         durationSeconds: { type: 'integer', nullable: true },
         channelId: { type: 'string', format: 'uuid' },
         createdAt: { type: 'string', format: 'date-time' },

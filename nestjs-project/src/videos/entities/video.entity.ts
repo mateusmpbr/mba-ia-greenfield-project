@@ -52,7 +52,9 @@ export class Video {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToOne(() => Channel, (channel) => channel.videos)
+  @ManyToOne(() => Channel, (channel) => channel.videos, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'channel_id' })
   channel: Channel;
 }
