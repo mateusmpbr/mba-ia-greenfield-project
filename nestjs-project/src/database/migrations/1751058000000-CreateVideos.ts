@@ -10,7 +10,7 @@ export class CreateVideos1751058000000 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "videos" (` +
         `"id" uuid NOT NULL DEFAULT uuid_generate_v4(), ` +
-        `"slug" character varying(11) NOT NULL, ` +
+        `"slug" character varying(22) NOT NULL, ` +
         `"title" character varying(200) NOT NULL, ` +
         `"status" "public"."videos_status_enum" NOT NULL DEFAULT 'draft', ` +
         `"storage_key" character varying(500), ` +

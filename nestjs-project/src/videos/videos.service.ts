@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
@@ -7,7 +7,10 @@ import { StorageService } from '../storage/storage.service';
 import { ChannelsService } from '../channels/channels.service';
 import { Video } from './entities/video.entity';
 import { VideoStatus } from './entities/video-status.enum';
-import { VIDEO_PROCESSING_QUEUE, VIDEO_PROCESSING_JOB } from '../queue/queue.constants';
+import {
+  VIDEO_PROCESSING_QUEUE,
+  VIDEO_PROCESSING_JOB,
+} from '../queue/queue.constants';
 import type { VideoProcessingJobData } from '../queue/queue.types';
 import { generateSlug } from './slug.util';
 import {

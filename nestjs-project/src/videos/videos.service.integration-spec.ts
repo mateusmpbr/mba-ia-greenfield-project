@@ -39,7 +39,6 @@ describe('VideosService (integration)', () => {
   let module: TestingModule;
   let service: VideosService;
   let dataSource: DataSource;
-  let channelsService: ChannelsService;
 
   let userCounter = 0;
 
@@ -106,7 +105,6 @@ describe('VideosService (integration)', () => {
     }).compile();
 
     service = module.get<VideosService>(VideosService);
-    channelsService = module.get<ChannelsService>(ChannelsService);
   });
 
   afterAll(async () => {

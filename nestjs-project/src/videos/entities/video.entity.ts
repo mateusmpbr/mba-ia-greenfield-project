@@ -15,7 +15,7 @@ export class Video {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 11, unique: true })
+  @Column({ type: 'varchar', length: 22, unique: true })
   slug: string;
 
   @Column({ type: 'varchar', length: 200 })

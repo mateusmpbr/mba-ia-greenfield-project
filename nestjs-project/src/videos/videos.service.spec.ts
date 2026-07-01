@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
-import { Repository } from 'typeorm';
 import { VideosService } from './videos.service';
 import { Video } from './entities/video.entity';
 import { VideoStatus } from './entities/video-status.enum';
@@ -69,7 +68,9 @@ describe('VideosService', () => {
     mockChannelsService.findByUserId.mockResolvedValue({ ...mockChannel });
     mockVideoRepository.create.mockReturnValue({ ...mockVideo });
     mockVideoRepository.save.mockImplementation(async (v: Partial<Video>) => v);
-    mockVideoRepository.findOne.mockImplementation(async () => ({ ...mockVideo }));
+    mockVideoRepository.findOne.mockImplementation(async () => ({
+      ...mockVideo,
+    }));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -100,7 +101,9 @@ describe('VideosService', () => {
     it('creates a draft video and returns upload URL', async () => {
       const result = await service.createDraft('user-uuid', 'Test Video');
 
-      expect(mockChannelsService.findByUserId).toHaveBeenCalledWith('user-uuid');
+      expect(mockChannelsService.findByUserId).toHaveBeenCalledWith(
+        'user-uuid',
+      );
       expect(mockVideoRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Test Video',
