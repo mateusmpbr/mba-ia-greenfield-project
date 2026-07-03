@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateVideos1751058000000 implements MigrationInterface {
-  name = 'CreateVideos1751058000000';
+export class CreateVideos1777579850479 implements MigrationInterface {
+  name = 'CreateVideos1777579850479';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
